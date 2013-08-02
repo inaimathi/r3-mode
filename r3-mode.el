@@ -8,6 +8,11 @@
   :type 'string
   :group 'r3)
 
+(defcustom r3-rebol-ide-file (concat (file-name-directory load-file-name) "ide.r")
+  "Location of the rebol ide addon"
+  :type 'string
+  :group 'r3)
+
 (defcustom r3-indent-offset 4
   "Number of spaces per indent level"
   :type 'integer
@@ -27,6 +32,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Interactive
+(defun r3-sanitize-fname (fname)
+  (replace-regexp-in-string "^\\(.*?\\):" "/\\1" fname))
+
 (defun r3-process-filter (proc msg)
   "Receives messages from the r3 background process.
 Processes might send responses in 'bunches', rather than one complete response,
@@ -43,7 +51,7 @@ Currently, that's the REPL prompt '^>> '"
   "Shortcut function to send a message to the background r3 interpreter process"
   (process-send-string r3-rebol-process (concat string "\n")))
 
-(r3-send! "do %ide.r")
+(r3-send! (concat "do %" (r3-sanitize-fname r3-rebol-ide-file)))
 (set-process-filter r3-rebol-process #'r3-process-filter)
 (add-hook 'after-change-functions #'r3-after-change)
 
@@ -91,8 +99,7 @@ Currently, that's the REPL prompt '^>> '"
 	(process-send-string 
 	 (get-buffer-process buffer)
 	 (concat "do %" 
-		 ;; Windows drive letters aren't supported REBOL's files
-		 (replace-regexp-in-string "^\\(.*?\\):" "/\\1" tmp)
+		 (r3-sanitize-fname tmp)
 		 "\n"))))))
 
 (defun r3-after-change (start end len)
