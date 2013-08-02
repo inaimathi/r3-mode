@@ -3,7 +3,7 @@
   "Support for the REBOL3 programming language, <http://www.rebol.com/>"
   :group 'languages)
 
-(defcustom r3-rebol-command "/home/inaimathi/projects-work/r3/make/r3"
+(defcustom r3-rebol-command "r3"
   "The location of the rebol interpreter on your system."
   :type 'string
   :group 'r3)
