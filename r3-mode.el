@@ -1,9 +1,9 @@
-;;;;;;;;;; Basic Mode Variables
+ ;;;;;;;;;; Basic Mode Variables
 (defgroup r3 nil
   "Support for the REBOL3 programming language, <http://www.rebol.com/>"
   :group 'languages)
 
-(defcustom r3-rebol-command "r3"
+(defcustom r3-rebol-command "/home/inaimathi/projects-work/r3/make/r3"
   "The location of the rebol interpreter on your system."
   :type 'string
   :group 'r3)
@@ -34,6 +34,20 @@
 ;;;;;;;;;; Interactive
 (defun r3-sanitize-fname (fname)
   (replace-regexp-in-string "^\\(.*?\\):" "/\\1" fname))
+
+(defun r3-trim (string)
+  (replace-regexp-in-string "^\s+\\|\s+$" "" string))
+
+(defun r3-strip-by-face (fontified-string face)
+  (replace-regexp-in-string 
+   "[ \t\r\n]+" " "
+   (if (text-property-any 0 (length fontified-string) 'face face fontified-string)
+       (let ((str (coerce fontified-string 'list)))
+	 (coerce (loop for c in str
+		       for i from 0
+		       unless (eq face (get-text-property i 'face fontified-string)) collect c)
+		 'string))
+     fontified-string)))
 
 (defun r3-process-filter (proc msg)
   "Receives messages from the r3 background process.
@@ -69,7 +83,8 @@ Currently, that's the REPL prompt '^>> '"
 	     (with-current-buffer "*r3-help*"
 	       (kill-region (point-min) (point-max))
 	       (insert ";;; " (match-string 1 (first lines)) " ;;;\n\n")
-	       (mapc (lambda (l) (insert l) (insert "\n")) (rest lines)))
+	       (mapc (lambda (l) (insert l) (insert "\n")) (rest lines))
+	       (r3-help-mode))
 	     (pop-to-buffer "*r3-help*"))
 	    ((string-match "SOURCE" (first lines))
 	     (ignore-errors (kill-buffer "*r3-source*"))
@@ -80,7 +95,10 @@ Currently, that's the REPL prompt '^>> '"
 	     (pop-to-buffer "*r3-source*"))))))
 
 (defun r3-help (word)
-  (interactive (list (thing-at-point 'word)))
+  (interactive (list (save-excursion
+		       (let ((start (progn (beginning-of-sexp) (point)))
+			     (end (progn (re-search-forward "[ \t]"))))
+			 (r3-trim (buffer-substring start end))))))
   (r3-send! (format "ide/show-help %s" word)))
 
 (defun r3-source (word)
@@ -107,26 +125,10 @@ Currently, that's the REPL prompt '^>> '"
     (message "Computing arg hint...")
     (save-excursion 
       (let ((end (point)))
-	(ignore-errors 
-	  (while (not (looking-at "[^][ \t\r\n(){}]+:"))
-	    (backward-sexp)))
-	(when (looking-at "[^][ \t\r\n(){}]+:")
-	  (forward-sexp) (forward-char))
-	(message "Showing arg hints for: [ %s ]"
-		 (r3-strip-by-face (buffer-substring (point) end) 'font-lock-comment-face))))))
-
-(defun r3-strip-by-face (fontified-string face)
-  (replace-regexp-in-string 
-	 "^\s+" ""
-	 (replace-regexp-in-string 
-	  "[ \t\r\n]+" " "
-	  (if (text-property-any 0 (length fontified-string) 'face face fontified-string)
-	      (let ((str (coerce fontified-string 'list)))
-		(coerce (loop for c in str
-			      for i from 0
-			      unless (eq face (get-text-property i 'face fontified-string)) collect c)
-			'string))
-	    fontified-string))))
+	(ignore-errors (backward-sexp))
+	(let ((wd (r3-trim (buffer-substring (point) end))))
+	  (unless (string-match " " wd)
+	    (message "Showing arg hints for: '%s'" wd)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Highlighting
@@ -162,6 +164,14 @@ Currently, that's the REPL prompt '^>> '"
    `(,(r3-highlight-regex 'keywords) . font-lock-keyword-face))
   "Font-lock expressions for REBOL3 mode. Value set by r3-set-fonts.")
 
+(defvar r3-help-font-lock-keywords
+  (list 
+   '("/[^ \r\n\t]+" . font-lock-variable-name-face)
+   '("[^ \r\n\t()]+[!?]" . font-lock-type-face)
+   '("\\([^ \r\n\t]+\\) --" (1 'font-lock-variable-name-face prepend))
+   '("^[^ \n\r\t]+:" . font-lock-function-name-face)
+   '("^;;;.*?;;;" (0 'font-lock-function-name-face prepend) (0 'underline prepend))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Indentation
 (defun r3-indent-line ()
@@ -186,6 +196,8 @@ Currently, that's the REPL prompt '^>> '"
 (defun run-r3 ()
   (interactive)
   (make-comint "rebol" r3-rebol-command)
+  (with-current-buffer "*rebol*"
+    (r3-repl-mode))
   (pop-to-buffer "*rebol*"))
 
 ;;;###autoload
@@ -195,11 +207,24 @@ Currently, that's the REPL prompt '^>> '"
   (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords))
   (set (make-local-variable 'indent-line-function) 'r3-indent-line))
 
+(define-derived-mode r3-help-mode fundamental-mode "R3-HELP"
+  "Major mode for the r3 help window"
+  (set (make-local-variable 'font-lock-defaults) '(r3-help-font-lock-keywords)))
+
+(define-derived-mode r3-repl-mode comint-mode "R3-REPL"
+  "Major mode for the r3 prompt"
+  (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords)))
+
 ;;;;; Keybindings
 (define-key r3-mode-map (kbd "C-c C-h") 'r3-help)
 (define-key r3-mode-map (kbd "C-c h") 'r3-help)
 (define-key r3-mode-map (kbd "C-c C-s") 'r3-source)
 (define-key r3-mode-map (kbd "C-c s") 'r3-source)
 (define-key r3-mode-map (kbd "C-c C-c") 'r3-send-region)
+
+(define-key r3-help-mode-map (kbd "C-c C-h") 'r3-help)
+(define-key r3-help-mode-map (kbd "C-c h") 'r3-help)
+(define-key r3-help-mode-map (kbd "C-c C-s") 'r3-source)
+(define-key r3-help-mode-map (kbd "C-c s") 'r3-source)
 
 (provide 'r3-mode)
