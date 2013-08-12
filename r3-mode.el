@@ -3,7 +3,7 @@
   "Support for the REBOL3 programming language, <http://www.rebol.com/>"
   :group 'languages)
 
-(defcustom r3-rebol-command "/home/inaimathi/projects-work/r3/make/r3"
+(defcustom r3-rebol-command "C:\\rebol\\r3\\make\\r3"
   "The location of the rebol interpreter on your system."
   :type 'string
   :group 'r3)
@@ -38,16 +38,17 @@
 (defun r3-trim (string)
   (replace-regexp-in-string "^\s+\\|\s+$" "" string))
 
+(defun r3-to-oneline (string)
+  (replace-regexp-in-string "[ \t\r\n]+" " " string))
+
 (defun r3-strip-by-face (fontified-string face)
-  (replace-regexp-in-string 
-   "[ \t\r\n]+" " "
-   (if (text-property-any 0 (length fontified-string) 'face face fontified-string)
-       (let ((str (coerce fontified-string 'list)))
-	 (coerce (loop for c in str
-		       for i from 0
-		       unless (eq face (get-text-property i 'face fontified-string)) collect c)
-		 'string))
-     fontified-string)))
+  (if (text-property-any 0 (length fontified-string) 'face face fontified-string)
+      (let ((str (coerce fontified-string 'list)))
+	(coerce (loop for c in str
+		      for i from 0
+		      unless (eq face (get-text-property i 'face fontified-string)) collect c)
+		'string))
+    fontified-string))
 
 (defun r3-process-filter (proc msg)
   "Receives messages from the r3 background process.
@@ -91,7 +92,7 @@ Currently, that's the REPL prompt '^>> '"
 	     (get-buffer-create "*r3-source*")
 	     (with-current-buffer "*r3-source*"
 	       (mapc (lambda (l) (insert l) (insert "\n")) (rest lines))
-	       (r3-mode))
+	       (r3-source-mode))
 	     (pop-to-buffer "*r3-source*"))))))
 
 (defun r3-help (word)
@@ -207,24 +208,31 @@ Currently, that's the REPL prompt '^>> '"
   (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords))
   (set (make-local-variable 'indent-line-function) 'r3-indent-line))
 
-(define-derived-mode r3-help-mode fundamental-mode "R3-HELP"
-  "Major mode for the r3 help window"
-  (set (make-local-variable 'font-lock-defaults) '(r3-help-font-lock-keywords)))
-
-(define-derived-mode r3-repl-mode comint-mode "R3-REPL"
-  "Major mode for the r3 prompt"
-  (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords)))
-
-;;;;; Keybindings
 (define-key r3-mode-map (kbd "C-c C-h") 'r3-help)
 (define-key r3-mode-map (kbd "C-c h") 'r3-help)
 (define-key r3-mode-map (kbd "C-c C-s") 'r3-source)
 (define-key r3-mode-map (kbd "C-c s") 'r3-source)
 (define-key r3-mode-map (kbd "C-c C-c") 'r3-send-region)
 
+(define-derived-mode r3-source-mode r3-mode "R3-SOURCE"
+  "Major mode for editing REBOL `source` output")
+
+(define-key r3-source-mode-map (kbd "C-x C-s") 
+  (lambda () 
+    (interactive)
+    (r3-send-region (point-min) (point-max))))
+
+(define-derived-mode r3-help-mode fundamental-mode "R3-HELP"
+  "Major mode for the r3 help window"
+  (set (make-local-variable 'font-lock-defaults) '(r3-help-font-lock-keywords)))
+
 (define-key r3-help-mode-map (kbd "C-c C-h") 'r3-help)
 (define-key r3-help-mode-map (kbd "C-c h") 'r3-help)
 (define-key r3-help-mode-map (kbd "C-c C-s") 'r3-source)
 (define-key r3-help-mode-map (kbd "C-c s") 'r3-source)
+
+(define-derived-mode r3-repl-mode comint-mode "R3-REPL"
+  "Major mode for the r3 prompt"
+  (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords)))
 
 (provide 'r3-mode)

@@ -5,6 +5,7 @@
 
 ### New Stuff
 
+- Source mode now evaluates the edited code on `C-x C-s` (it *doesn't* add a write-file hook, so you can still save the definition to a local file if you like)
 - Help mode is now minimally highlighted and supports the help and source keys (`C-c C-h`/`C-c h` for help, `C-c C-s`/`C-c s` for source). I won't be doing buttoning because it was producing stupid results (such as buttonifying the word `if` regardless of context)
 - the r3 REPL is now highlighted in the same manner as r3 code buffers
 - `r3-help` now correctly selects words like `object?` and `map!` (it previously dropped punctuation)
@@ -14,11 +15,9 @@
 - clone this repository
 - add the following to your `~/.emacs` file:
 
-
 `(add-to-list 'load-path "/path/to/this/repo")`
 `(autoload 'r3-mode "r3-mode.el" "Major mode for REBOL3 development" t)`
 `(add-to-list 'auto-mode-alist '("\\.r$" . r3-mode)) ;; *.r files will be opened in r3-mode`
-
 
 - run `M-x customize-group r3` and change the variable `r3-rebol-command` to point at your `r3` interpreter
 
@@ -32,7 +31,6 @@
 ### Features under construction
 
 - **Argument Hints** Currently dummied out; the mode will eventually offer argument hints in the minibuffer as you type.
-- **Auto-editable `r3-source`**. When viewing source, editing and saving the source buffer will automatically evaluate the new code against the running `r3` interpreter
 - **Jump-To-Definition** Self explanatory, I hope.
 
 ### License
