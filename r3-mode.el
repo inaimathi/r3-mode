@@ -214,6 +214,7 @@ Currently, that's the REPL prompt '^>> '"
 (define-key r3-mode-map (kbd "C-c s") 'r3-source)
 (define-key r3-mode-map (kbd "C-c C-c") 'r3-send-region)
 
+;;;;;;;;;; Minor and "minor" modes for sub-components of r3-mode
 (define-derived-mode r3-source-mode r3-mode "R3-SOURCE"
   "Major mode for editing REBOL `source` output")
 
@@ -221,6 +222,10 @@ Currently, that's the REPL prompt '^>> '"
   (lambda () 
     (interactive)
     (r3-send-region (point-min) (point-max))))
+
+(define-derived-mode r3-repl-mode comint-mode "R3-REPL"
+  "Major mode for the r3 prompt"
+  (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords)))
 
 (define-derived-mode r3-help-mode fundamental-mode "R3-HELP"
   "Major mode for the r3 help window"
@@ -230,9 +235,5 @@ Currently, that's the REPL prompt '^>> '"
 (define-key r3-help-mode-map (kbd "C-c h") 'r3-help)
 (define-key r3-help-mode-map (kbd "C-c C-s") 'r3-source)
 (define-key r3-help-mode-map (kbd "C-c s") 'r3-source)
-
-(define-derived-mode r3-repl-mode comint-mode "R3-REPL"
-  "Major mode for the r3 prompt"
-  (set (make-local-variable 'font-lock-defaults) '(r3-font-lock-keywords)))
 
 (provide 'r3-mode)
