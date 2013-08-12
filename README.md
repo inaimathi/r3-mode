@@ -15,9 +15,9 @@
 - add the following to your `~/.emacs` file:
 
 
-    (add-to-list 'load-path "/path/to/this/repo")
-    (autoload 'r3-mode "r3-mode.el" "Major mode for REBOL3 development" t)
-    (add-to-list 'auto-mode-alist '("\\.r$" . r3-mode)) ;; *.r files will be opened in r3-mode
+`(add-to-list 'load-path "/path/to/this/repo")`
+`(autoload 'r3-mode "r3-mode.el" "Major mode for REBOL3 development" t)`
+`(add-to-list 'auto-mode-alist '("\\.r$" . r3-mode)) ;; *.r files will be opened in r3-mode`
 
 
 - run `M-x customize-group r3` and change the variable `r3-rebol-command` to point at your `r3` interpreter
